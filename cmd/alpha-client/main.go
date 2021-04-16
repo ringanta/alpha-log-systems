@@ -13,8 +13,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	sshAttemptSuccess     = regexp.MustCompile(`sshd\[.*\]: Accepted`)
+	sshAttemptInvalidUser = regexp.MustCompile(`sshd\[.*\]: Invalid user`)
+	sshAttemptInvalidCred = regexp.MustCompile(`sshd\[.*\]: Connection closed`)
+)
+
 func main() {
-	viper.SetDefault("SSHLogFile", "/var/log/secure")
+	viper.SetDefault("SSHLogFile", "/var/log/auth.log")
 	viper.SetDefault("AlphaServerEndpoint", "http://localhost:3000/")
 	viper.SetDefault("AlphaServerToken", "")
 	viper.SetConfigName("config")
@@ -36,6 +42,7 @@ func main() {
 
 	for line := range t.Lines {
 		if isSSHAttempt(line.Text) {
+			log.Info(fmt.Sprintf("Sending ssh attempt: %s", line.Text))
 			err := sendEventToAlphaServer(line.Text)
 			if err != nil {
 				// Handle failure sending to server
@@ -48,9 +55,9 @@ func main() {
 }
 
 func isSSHAttempt(line string) bool {
-	// Assume ssh attempt log contains the following line: [time] [pid]: ssh attempt from ip [ip address] using [user]
-	var sshAttemptPattern = regexp.MustCompile(`.*: ssh attempt from ip .* using .*`)
-	if sshAttemptPattern.MatchString(line) {
+	if sshAttemptSuccess.MatchString(line) ||
+		sshAttemptInvalidCred.MatchString(line) ||
+		sshAttemptInvalidUser.MatchString(line) {
 		return true
 	}
 	return false
