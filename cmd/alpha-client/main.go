@@ -10,14 +10,26 @@ import (
 
 	"github.com/nxadm/tail"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
-var logFile = "/var/log/secure"
-var alphaServerEndpoint = "https://localhost:8989/events"
-var alphaServerToken = "blablabla"
-
 func main() {
-	t, err := tail.TailFile(logFile, tail.Config{Follow: true})
+	viper.SetDefault("SSHLogFile", "/var/log/secure")
+	viper.SetDefault("AlphaServerEndpoint", "http://localhost:3000/")
+	viper.SetDefault("AlphaServerToken", "")
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Info("Config file not found will proceed with default")
+		} else {
+			panic(fmt.Errorf("Fatal error when parsing config file: %s \n", err))
+		}
+	}
+
+	t, err := tail.TailFile(viper.GetString("SSHLogFile"), tail.Config{Follow: true})
 	if err != nil {
 		panic(err)
 	}
@@ -29,6 +41,8 @@ func main() {
 				// Handle failure sending to server
 				log.Error(fmt.Sprintf("Failed to send event to server: %s", err))
 			}
+		} else {
+			log.Info(fmt.Sprintf("Not connection attempt, skipping: %s", line.Text))
 		}
 	}
 }
@@ -50,8 +64,8 @@ func sendEventToAlphaServer(line string) error {
 	}
 	client := &http.Client{Transport: tr}
 
-	req, err := http.NewRequest("POST", alphaServerEndpoint, strings.NewReader(line))
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", alphaServerToken))
+	req, err := http.NewRequest("POST", viper.GetString("AlphaServerEndpoint"), strings.NewReader(line))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", viper.GetString("AlphaServerToken")))
 	_, err = client.Do(req)
 
 	if err != nil {
