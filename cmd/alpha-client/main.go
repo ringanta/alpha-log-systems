@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
-	"strings"
 	"time"
 
 	"net/http"
@@ -19,10 +21,21 @@ var (
 	sshAttemptInvalidCred = regexp.MustCompile(`sshd\[.*\]: Connection closed`)
 )
 
+type sshAttempt struct {
+	Host string `json:"host"`
+	Log  string `json:"log"`
+}
+
 func main() {
+	hostname, err := os.Hostname()
+	if err != nil {
+		panic(err)
+	}
+
 	viper.SetDefault("SSHLogFile", "/var/log/auth.log")
 	viper.SetDefault("AlphaServerEndpoint", "http://localhost:3000/")
 	viper.SetDefault("AlphaServerToken", "")
+	viper.SetDefault("Hostname", hostname)
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
@@ -42,7 +55,6 @@ func main() {
 
 	for line := range t.Lines {
 		if isSSHAttempt(line.Text) {
-			log.Info(fmt.Sprintf("Sending ssh attempt: %s", line.Text))
 			err := sendEventToAlphaServer(line.Text)
 			if err != nil {
 				// Handle failure sending to server
@@ -71,8 +83,18 @@ func sendEventToAlphaServer(line string) error {
 	}
 	client := &http.Client{Transport: tr}
 
-	req, err := http.NewRequest("POST", viper.GetString("AlphaServerEndpoint"), strings.NewReader(line))
+	payload, err := json.Marshal(&sshAttempt{
+		Host: viper.GetString("Hostname"),
+		Log:  line,
+	})
+
+	if err != nil {
+		return fmt.Errorf("Failed to construct sshAttempt struct: %s", err)
+	}
+
+	req, err := http.NewRequest("POST", viper.GetString("AlphaServerEndpoint"), bytes.NewBuffer(payload))
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", viper.GetString("AlphaServerToken")))
+	log.Info(fmt.Sprintf("Sending ssh attempt: %s", payload))
 	_, err = client.Do(req)
 
 	if err != nil {
