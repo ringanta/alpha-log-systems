@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"html/template"
 
 	"github.com/gofiber/fiber/v2"
 	log "github.com/sirupsen/logrus"
@@ -23,6 +25,17 @@ type SSHAttemptRecord struct {
 	Host string `json:"host"`
 	Log  string `json:"log"`
 }
+
+type SSHAttempCount struct {
+	Host  string
+	Count int
+}
+
+const SSH_ATTEMPT_SUMMARY = `
+Metrics for ssh log-in attempts
+{{range $item := .}}* {{ $item.Host }} had {{ $item.Count }} attempt
+{{end}}
+`
 
 func main() {
 	viper.SetDefault("AlphaServerToken", "")
@@ -47,14 +60,33 @@ func main() {
 	db.AutoMigrate(&SSHAttemptRecord{})
 	log.Info("Initialization of connection to the database is success")
 
+	summaryTemplate := template.Must(template.New("ssh_attempts").Parse(SSH_ATTEMPT_SUMMARY))
+
 	app := fiber.New()
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		// SELECT COUNT(ID), Host FROM ssh_attempt_records GROUP BY Host;
-		//rows, _ := db.Raw("SELECT host, COUNT(id) FROM ssh_attempt_records GROUP BY host").Rows()
-		//defer rows.Close()
+		rows, _ := db.Raw("SELECT host, COUNT(id) FROM ssh_attempt_records GROUP BY host").Rows()
+		defer rows.Close()
 
-		return c.SendString("Hello there stranger!")
+		var sshAttemptSummary = []SSHAttempCount{}
+		var host string
+		var count int
+
+		for rows.Next() {
+			rows.Scan(&host, &count)
+			sshAttemptSummary = append(sshAttemptSummary, SSHAttempCount{
+				Host:  host,
+				Count: count,
+			})
+		}
+
+		var buf bytes.Buffer
+		err := summaryTemplate.Execute(&buf, sshAttemptSummary)
+		if err != nil {
+			log.Error("Fail to execute template: %s", err)
+		}
+
+		return c.SendString(buf.String())
 	})
 
 	app.Post("/ssh-attempts", func(c *fiber.Ctx) error {
