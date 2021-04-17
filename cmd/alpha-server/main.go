@@ -1,12 +1,26 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
+
+type SSHAttempt struct {
+	Host string `json:"host"`
+	Log  string `json:"log"`
+}
+
+type SSHAttemptRecord struct {
+	Id   string `json:"ID"`
+	Host string `json:"host"`
+	Log  string `json:"log"`
+}
 
 func main() {
 	viper.SetDefault("AlphaServerToken", "")
@@ -36,7 +50,22 @@ func main() {
 			return c.SendStatus(403)
 		}
 
-		log.Info(fmt.Sprintf("Received data: %s", c.Body()))
+		log.Info(fmt.Sprintf("Received data from client: %s", c.Body()))
+		event := SSHAttempt{}
+		json.Unmarshal(c.Body(), &event)
+		hash := sha256.New()
+		hash.Write(c.Body())
+		dbRecord := SSHAttemptRecord{
+			Id:   hex.EncodeToString(hash.Sum(nil)),
+			Host: event.Host,
+			Log:  event.Log,
+		}
+
+		data, err := json.Marshal(dbRecord)
+		if err != nil {
+			panic(err)
+		}
+		log.Info(fmt.Sprintf("Store the record to db: %s", data))
 		return c.Send(c.Body())
 	})
 
