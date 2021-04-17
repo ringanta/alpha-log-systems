@@ -9,6 +9,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type SSHAttempt struct {
@@ -24,6 +26,7 @@ type SSHAttemptRecord struct {
 
 func main() {
 	viper.SetDefault("AlphaServerToken", "")
+	viper.SetDefault("DBPort", "5432")
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
@@ -37,9 +40,20 @@ func main() {
 	}
 	serverToken := fmt.Sprintf("Bearer %s", viper.GetString("AlphaServerToken"))
 
+	db, err := initDB()
+	if err != nil {
+		panic(fmt.Sprintf("Can't connect to db: %s", err))
+	}
+	db.AutoMigrate(&SSHAttemptRecord{})
+	log.Info("Initialization of connection to the database is success")
+
 	app := fiber.New()
 
 	app.Get("/", func(c *fiber.Ctx) error {
+		// SELECT COUNT(ID), Host FROM ssh_attempt_records GROUP BY Host;
+		//rows, _ := db.Raw("SELECT host, COUNT(id) FROM ssh_attempt_records GROUP BY host").Rows()
+		//defer rows.Close()
+
 		return c.SendString("Hello there stranger!")
 	})
 
@@ -65,9 +79,26 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+
+		db.Create(&dbRecord)
 		log.Info(fmt.Sprintf("Store the record to db: %s", data))
-		return c.Send(c.Body())
+		return c.SendStatus(200)
 	})
 
 	app.Listen(":3000")
+}
+
+func initDB() (*gorm.DB, error) {
+	dbHost := viper.GetString("DBHost")
+	dbPort := viper.GetString("DBPort")
+	dbUser := viper.GetString("DBUser")
+	dbPassword := viper.GetString("DBPassword")
+	dbName := viper.GetString("DBName")
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s", dbHost, dbPort, dbUser, dbPassword, dbName)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
 }

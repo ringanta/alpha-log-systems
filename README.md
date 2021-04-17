@@ -14,3 +14,16 @@ Some of notable implementations decisions:
 - AlphaServer stores SSH attempt event to Postgres database for simplicity on the implementor side.
 - AlphaServer queries databases to calculate SSH attempt for each hosts and display attempt metrics on a simple static web page for simplicity of implementation.
 
+## Build
+
+Run `make build` to build alpha-client and alpha-server. Binary for `alpha-client` and `alpha-server` are available under the `bin` directory.
+To create binary for multiple platform, run `make compile`.
+All generated binaries are stored under the `bin` directory.
+
+ ## Run
+
+Here is step by step guide to run all components of the system in your local machine.
+You need to have Docker Engine and Docker Compose installed.
+1. Run Postgres database, `docker-compose up -d`
+1. Run alpha-server, `make run-alpha-server`
+1. Open a new terminal and run alpha-client, `make run-alpha-client`

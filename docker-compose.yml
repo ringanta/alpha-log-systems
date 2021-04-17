@@ -1,0 +1,11 @@
+version: "3"
+services:
+    pg:
+        image: postgres
+        restart: always
+        ports:
+            - 15432:5432
+        environment:
+            POSTGRES_PASSWORD: postgres123
+            POSTGRES_USER: localdev
+            POSTGRES_DB: alpha_log_system

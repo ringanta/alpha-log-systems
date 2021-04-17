@@ -1,0 +1,8 @@
+AlphaServerEndpoint: http://localhost:3000/ssh-attempts
+Hostname: NodeABC
+AlphaServerToken: token123
+DBHost: localhost
+DBPort: 15432
+DBUser: localdev
+DBPassword: postgres123
+DBName: alpha_log_system
