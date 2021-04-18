@@ -55,3 +55,16 @@ Follow these steps to deploy AlphaClient:
    The first parameter for the `deploy-alpha-server.sh` is token that will be used by AlphaClient to authenticate when sending SSH login attempt to AlphaServer.
    The value must be matching with the token used by AlphaServer.
    This is a sensitive value that shouldn't be stored in plain text in a git repository.
+
+## Future Implementation Ideas
+
+- Create build and deploy pipelines using common CI/CD platforms such as Jenkins, Github Action, or Gitlab CD.
+- Package AlphaServer and AlphaClient as a linux container image and made it available in a container registry. This will make AlphaServer more accessible to be deployed in containerized env such as Kubernetes.
+- Handle AlphaServer infrastructure provisioning using IaC tool such as Terraform.
+  Infrastructure component includes Postgres cluster, machines for AlphaServer, load balancer, domain name, and HTTPS certificate.
+  Result of the infrastructure provisioning can be used to fill in value in the `hosts` file.
+- Implement remote secret management such as Hashicorp Vault, AWS Secret Manager, or using chamber with Parameter Store as backend.
+- Implement autoscaling for AlphaServer. We'll need to invert the deployment flow from push to pull mode to support autoscaling.
+  Alternatively, we can create new OS image with binary and config preconfigured and ready to run.
+  We then use this image on the autoscaling configuration.
+  The tradeoff is it will take time to build the OS image but startup time will be faster since everything has been preconfigured.
