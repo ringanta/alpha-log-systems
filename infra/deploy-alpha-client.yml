@@ -2,6 +2,10 @@
 - name: Deploy AlphaClient
   hosts: alpha-client
   become: yes
+  serial:
+    - 1
+    - 5
+    - "100%"
   roles:
     - role: deploy-go-binary
       name: alpha-client
