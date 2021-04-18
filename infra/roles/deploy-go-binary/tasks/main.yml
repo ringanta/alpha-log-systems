@@ -1,0 +1,28 @@
+---
+- name: Make sure base directory exist in remote server
+  file:
+    path: "{{ binary_base_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy binary to target server
+  copy:
+    src: "{{ source_binary }}"
+    dest: "{{ binary_base_dir }}/{{ source_binary | basename }}"
+
+- name: Prepare configuration for binary file
+  template:
+    src: config.yaml.j2
+    dest: "{{ binary_base_dir }}/config.yaml"
+
+- name: Prepare Systemd unit file for the binary
+  template:
+    src: golang.service
+    dest: "/etc/systemd/system/{{ source_binary | basename }}.service"
+  notify: Reload Systemd
+
+- name: Start service
+  service:
+    name: "{{ source_binary | basename }}"
+    state: started
+    enabled: true

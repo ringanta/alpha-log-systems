@@ -1,0 +1,13 @@
+---
+- name: Deploy AlphaClient
+  hosts: alpha-client
+  become: yes
+  roles:
+    - role: deploy-go-binary
+      name: alpha-client
+      source_binary: alpha-client
+      base_dir: /opt/alpha-client
+      service_description: AlphaClient service
+      configs:
+        AlphaServerToken: "{{ server_token }}"
+        SSHLogFile: /var/log/auth.log

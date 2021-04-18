@@ -1,0 +1,16 @@
+---
+- name: Deploy AlphaServer
+  hosts: alpha-servers
+  become: yes
+  roles:
+    - role: deploy-go-binary
+      source_binary: ../bin/alpha-server-linux-amd64
+      base_dir: /opt/alpha-server
+      service_description: AlphaServer service
+      configs:
+        AlphaServerToken: "{{ server_token }}"
+        DBHost: localhost
+        DBPort: 15432
+        DBUser: localdev
+        DBPassword: "{{ db_password }}"
+        DBName: alpha_log_system

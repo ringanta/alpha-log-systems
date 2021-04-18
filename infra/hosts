@@ -1,0 +1,7 @@
+[alpha-servers]
+server1 ansible_user=deployer_user
+server2 ansible_user=deployer_user
+
+[alpha-clients]
+nodeABC ansible_user=deployer_user
+nodeXYZ ansible_user=deployer_user

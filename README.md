@@ -27,3 +27,31 @@ You need to have Docker Engine and Docker Compose installed.
 1. Run Postgres database, `docker-compose up -d`
 1. Run alpha-server, `make run-alpha-server`
 1. Open a new terminal and run alpha-client, `make run-alpha-client`
+
+## Deployment
+
+Here is step by step guide to deploy alpha-server into Linux servers.
+It's assumed that Postgres database has already been prepared and ready to be used by AlphaServer.
+The machine where deployment executed must has SSH connection configured to all the AlphaServer and AlphaClient target servers.
+Deployment step is implemented using Ansible.
+
+Here is the steps to deploy AlphaServer:
+
+1. Open terminal, clone this repository, and change working directory into the repository root directory.
+1. Add AlphaServers address and SSH username that will be used to deploy AlphaServer under the `[alpha-servers]` section on the `hosts` file.
+1. Initiate deployment of AlphaServer, `cd infra; ./deploy-alpha-server.sh <ALPHA_SERVER_TOKEN> <DB_PASSWORD>`.
+   The first parameter for the `deploy-alpha-server.sh` is authentication that will be used by AlphaServer to verify token authentication when receiving event from AlphaClient.
+   The second parameter is password to connect to database.
+   Both of these values are sensitive so they shouldn't be committed in plaintext in a git repository.
+   Another alternative to handle sensitive value in Ansible is to encypt them using `ansible-vault` so the encrypted file can be committed to a git repository.
+   The second alternative is to use lookup plugin.
+   You can see available plugins on [https://docs.ansible.com/ansible/2.5/plugins/lookup.html#plugin-list](https://docs.ansible.com/ansible/2.5/plugins/lookup.html#plugin-list)
+
+Follow these steps to deploy AlphaClient:
+
+1. Open terminal, clone this repository, and change working directory into the repository root directory.
+1. Add AlphaClient address and SSH username that will be used to deploy AlphaClient under the `[alpha-clients]` section on the `hosts` file.
+1. Initiate deployment of AlphaClient, `cd infra; ./deploy-alpha-server.sh <ALPHA_SERVER_TOKEN>`.
+   The first parameter for the `deploy-alpha-server.sh` is token that will be used by AlphaClient to authenticate when sending SSH login attempt to AlphaServer.
+   The value must be matching with the token used by AlphaServer.
+   This is a sensitive value that shouldn't be stored in plain text in a git repository.

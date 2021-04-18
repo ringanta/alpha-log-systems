@@ -1,0 +1,14 @@
+[Unit]
+Description={{ service_description }}
+After=network.target
+ 
+[Service]
+Type=simple
+LimitNOFILE=1024
+
+Restart=on-failure
+RestartSec=10
+startLimitIntervalSec=60
+
+WorkingDirectory={{ binary_base_dir }}
+ExecStart={{ binary_base_dir }}/{{ source_binary | basename }}
